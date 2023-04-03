@@ -6,8 +6,27 @@ import cheerio from "cheerio";
 puppeteer.use(Stealth());
 const browser = await puppeteer.launch({ headless: false });
 
-const getLabels = async () => {
-	const url = "https://etherscan.io/labelcloud";
+const explorers = async () => {
+	const url = "https://blockscan.com/";
+	const response = await fetch(url);
+	const html = await response.text();
+	const $ = cheerio.load(html);
+	const urls: string[] = [];
+
+	$("a.product-list").each((_, element) => {
+		const href = $(element).attr("href");
+		if (href) {
+			urls.push(`${href}`);
+		}
+	});
+
+	console.log(urls);
+
+	return urls;
+};
+
+const getLabels = async (explorerUrl) => {
+	const url = "https:" + explorerUrl + "/labelcloud";
 	const response = await fetch(url);
 	const html = await response.text();
 	const $ = cheerio.load(html);
@@ -17,7 +36,7 @@ const getLabels = async () => {
 	$("a[href^='/accounts/label']").each((_, element) => {
 		const href = $(element).attr("href");
 		if (href) {
-			urls.push(`https://etherscan.io${href}`);
+			urls.push("https:" + explorerUrl + href);
 		}
 	});
 
@@ -27,7 +46,7 @@ const getLabels = async () => {
 const getTables = async (url) => {
 	const page = await browser.newPage();
 	await page.goto(url, { waitUntil: "networkidle0" });
-	await page.waitForTimeout(6000);
+	await page.waitForTimeout(8000);
 
 	const labels = await page.$$eval("table > tbody > tr", (rows) => {
 		return rows.map((row) => {
@@ -51,24 +70,29 @@ const getTables = async (url) => {
 	return labels;
 };
 
-export const scrapeResultsFor = async () => {
-	const urls = await getLabels();
-	const allLabels: string[][] = [];
-	for (const url of urls) {
-		console.log(url);
-		const labels = await getTables(url);
-		// @ts-ignore
-		allLabels.push(...labels);
-	}
-	return allLabels;
-};
+const explores = await explorers();
+const res: Promise<void>[] = [];
+for (const explr of explores) {
+	const doThing = async (source) => {
+		const urls = await getLabels(source);
+		const res: string[][] = [];
+		for (const url of urls) {
+			console.log(url);
+			const labels = await getTables(url);
+			// @ts-ignore
+			res.push(...labels);
+		}
+		await writeFile(
+			`data/${source.slice(2, source.length - 1)}_out.json`,
+			JSON.stringify(Object.fromEntries(res.filter(([a, b]) => a))),
+			"utf8"
+		);
+	};
+	res.push(doThing(explr));
+}
 
-const res = await scrapeResultsFor();
+await Promise.all(res);
 
-await writeFile(
-	"./out.json",
-	JSON.stringify(Object.fromEntries(res.filter(([a, b]) => a))),
-	"utf8"
-);
+
 
 await browser.close();
