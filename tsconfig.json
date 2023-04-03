@@ -1,9 +1,12 @@
 {
-  "extends": "@tsconfig/node18",
-  "compilerOptions": {
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "noEmit": true
-  },
-  "include": ["src/**/*.ts"]
+	"extends": "@tsconfig/node18",
+	"compilerOptions": {
+		"lib": ["DOM", "ESNext"],
+		"module": "ESNext",
+		"moduleResolution": "node",
+		"noEmit": true,
+		"noImplicitAny": false,
+		"resolveJsonModule": true
+	},
+	"include": ["src/*.ts"]
 }
