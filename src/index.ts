@@ -65,4 +65,10 @@ export const scrapeResultsFor = async () => {
 
 const res = await scrapeResultsFor();
 
-await writeFile("./out.json", JSON.stringify(Object.fromEntries(res)), "utf8");
+await writeFile(
+	"./out.json",
+	JSON.stringify(Object.fromEntries(res.filter(([a, b]) => a))),
+	"utf8"
+);
+
+await browser.close();
